@@ -3,5 +3,4 @@ langchain
 chromadb
 pytest
 langchain-community
-shutil
-ollama
+sentence-transformers
