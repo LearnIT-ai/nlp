@@ -3,6 +3,8 @@
 # In first start you will have a huge download because models must locate localy
 # If you work on windows and want to delete the model find directory "C:\Users\<your_user_name>\.cache\huggingface\hub"
 
+
+
 **pip install -r requirements.txt**
 
 1. Run ./src/get_data_from_db.ipynb - to extract original documents from MongoDB
