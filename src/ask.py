@@ -1,13 +1,16 @@
 from mistralai import Mistral
 
-from langchain.vectorstores.chroma import Chroma
+from langchain_community.vectorstores import Chroma
+
 from langchain.prompts import ChatPromptTemplate
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
+
 
 from dotenv import load_dotenv
 import os
-
+import torch
 import argparse
 from colorama import Fore,Style
 from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -18,14 +21,14 @@ load_dotenv()
 
 CHROMA_PATH = 'chroma'
 
-PROMPT_TEMPLATE_WITH_CONTEXT = """Відповідай на запитання, спираючись лише на наступний контекст:{context} Відповідай на запитання на основі вищезгаданого контексту: {question}"""
-PROMPT_TEMPLATE_WITHOUT_CONTEXT = """Відповідай на запитання на основі вищезгаданого контексту: {question}"""
+PROMPT_TEMPLATE_WITH_CONTEXT = """Відповідай на запитання, спираючись лише на наступний контекст : {context}. Відповідай на запитання на основі вищезгаданого контексту: {question}"""
+PROMPT_TEMPLATE_WITHOUT_CONTEXT = """Відповідай на запитання, спираючись лише на наступний контекст даючи детальну і розгорнуту відповідь : {question}"""
 api_key = os.getenv("MISTRAL_API_KEY")
 
 
 client = Mistral(api_key=api_key)
 
-tokenizer_nlp = T5Tokenizer.from_pretrained("google/flan-t5-xl")
+tokenizer_nlp = T5Tokenizer.from_pretrained("google/flan-t5-xl",legacy=False)
 model_nlp = T5ForConditionalGeneration.from_pretrained("google/flan-t5-xl").to("cuda")
 
 model_name_translate = "facebook/m2m100_418M"
@@ -60,7 +63,7 @@ def run_flat_t5(user_message):
     print(f"{Fore.YELLOW}Translated to English: {en_text} {Style.RESET_ALL}")
 
     input_ids = tokenizer_nlp(en_text, return_tensors="pt", padding=True, truncation=True).input_ids.to("cuda")
-    outputs = model_nlp.generate(input_ids, max_length=512)
+    outputs = model_nlp.generate(input_ids,max_new_tokens=3000, eos_token_id=tokenizer_nlp.eos_token_id ,do_sample=True,num_beams=3,temperature=0.7,top_p=0.9,repetition_penalty=1.5)
     decoded_output = tokenizer_nlp.decode(outputs[0], skip_special_tokens=True)
     print(f"{Fore.CYAN} Model response: {decoded_output} {Style.RESET_ALL}")
 
@@ -85,9 +88,8 @@ def query_model_flan_t5(query_text: str):
     sources = [doc.metadata.get("id", None) for doc, _score in results]
     formatted_response = f"Response: {response_text}\n\nSources: {sources}"
     print(formatted_response)
+    torch.cuda.empty_cache()  
     return response_text
-
-
 
 if __name__ == "__main__":
     main_flan_t5()
