@@ -1,6 +1,0 @@
-pypdf
-langchain
-chromadb
-pytest
-langchain-community
-sentence-transformers
