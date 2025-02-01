@@ -13,3 +13,4 @@
 
 Additionally: 
 Run ./src/upload_to_db.ipynb - to upload original documents to MongoDB
+For install pytorch on windows use pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
