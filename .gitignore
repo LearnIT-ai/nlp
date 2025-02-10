@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+similarity_model
 results
 logs
 data
