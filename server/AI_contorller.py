@@ -1,7 +1,7 @@
 from models.gpt import GPT
 from utils.extrac_text_from_file import ExtractTextFromFile
 from models.sentence_transformer import SentenceSimilarity
-
+from models.similarity_model import SimilarityModel
 
 class AiController:
     def general_chat(user_message):
@@ -35,11 +35,9 @@ class AiController:
             "user_answer": text,
             "right_answer": model_response
         }
-        # TEMOPORARY CHANGE TO OUR MODEL
-        # FIND THE BETTER WAY TO READ CONTEXT OF ANSWERS
-        response_for_user = SentenceSimilarity.find_similarity(text_for_similarity)
-
-        if response_for_user > 85:
+        similarity_response = SimilarityModel().compute_similarity(text_for_similarity)
+        print(similarity_response)
+        if similarity_response > 85:
             return "Your homework is correct"
         else:
             return "Your homework is incorrect"
@@ -55,10 +53,9 @@ class AiController:
             "user_answer": answer,
             "right_answer": model_response
         }
-        # TEMOPORARY CHANGE TO OUR MODEL
-        # FIND THE BETTER WAY TO READ CONTEXT OF ANSWERS
-        response_for_user = SentenceSimilarity.find_similarity(text_for_similarity)
-        if response_for_user > 85:
+        similarity_response = SimilarityModel().compute_similarity(text_for_similarity)
+        print(similarity_response)
+        if similarity_response > 85:
             return "Your homework is correct"
         else:
             return "Your homework is incorrect"

@@ -157,7 +157,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 /server/har_and_cookies
-
+/server/models/model_for_similarity/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
