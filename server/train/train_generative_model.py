@@ -3,13 +3,13 @@ from datasets import Dataset
 import torch
 import json
 
-model_name = "mistralai/Mistral-7B-Instruct-v0.3"
+model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token  
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda")
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.float16  
@@ -51,7 +51,8 @@ training_args = TrainingArguments(
     logging_strategy="epoch",
     save_total_limit=2,
     load_best_model_at_end=True,
-    fp16=True,  
+    fp16=False,
+    bf16=True,  
     dataloader_pin_memory=True, 
     report_to="none"  
 )

@@ -1,61 +1,97 @@
 from models.gpt import GPT
 from utils.extrac_text_from_file import ExtractTextFromFile
-from models.sentence_transformer import SentenceSimilarity
 from models.similarity_model import SimilarityModel
+from deep_translator import GoogleTranslator
+from langdetect import detect
+from fastapi import HTTPException
 
 class AiController:
-    def general_chat(user_message):
+    @staticmethod
+    def detect_language(text):
+        try:
+            return detect(text)
+        except Exception:
+            raise HTTPException(detail="Error: Unable to detect language.",status_code=400)
+    
+    @staticmethod
+    def translate_text(text, source_lang, target_lang):
+        if source_lang == target_lang:
+            return text
+        return GoogleTranslator(source=source_lang, target=target_lang).translate(text)
+    
+    def general_chat(self, user_message):
+        detected_lang = self.detect_language(user_message)
+        if detected_lang not in ["en", "uk"]:
+            raise HTTPException(detail="Error: Support only English and Ukrainian language.",status_code=400)
+
         gpt_instance = GPT()
-        stabilizator = "I am a student of computer science. Answer in Ukrainian or English only. The answer should be as detailed as possible, everything should be written step by step, and each step should be explained. So my question is:"
+        stabilizator = (
+            "I am a student of computer science. Answer in Ukrainian or English only. "
+            "The answer should be as detailed as possible, everything should be written step by step, "
+            "and each step should be explained. So my question is: "
+        )
+
+        user_message = self.translate_text(user_message, detected_lang, "en")
         stabilize_user_message = stabilizator + user_message + "?"
         response = gpt_instance.send_something(stabilize_user_message)
-        formatted_response = response.replace("\n", "")  
+        response_lang = self.detect_language(response)
 
-        return formatted_response
-    
-    def check_homework_file(homework_file):
+        response = self.translate_text(response, response_lang, "uk")
+        return response.replace("\n", "")
+
+    def check_homework_file(self, homework_file):
         ext = homework_file.filename.split(".")[-1].lower()
         if ext == "pdf":
-            homework_file.file.seek(0)
             text = ExtractTextFromFile.pdf(homework_file)
         elif ext == "docx":
-            homework_file.file.seek(0)
             text = ExtractTextFromFile.docx(homework_file)
         elif ext == "doc":
-            homework_file.file.seek(0)
             text = ExtractTextFromFile.doc(homework_file)
         else:
-            raise Exception("Wrong format of file")
-
-        request_to_AI = "This is my homework. Your task is to read the task and provide a solution, do not change or correct my answer to the task. Just solve the task. The answer must be in the language in which my solution is written. The answer should not contain a well-done task according to these criteria, only the task itself and your answer to the task and nothing more. The structure should be the same as in the file I sent you (for example, task: answer:). Here is the task: " + text
-        # TEMPORARY CHANGE OT OUR MODEL
-        gpt_instance = GPT()
-        model_response = gpt_instance.send_something(request_to_AI)
-        text_for_similarity = {
-            "user_answer": text,
-            "right_answer": model_response
-        }
-        similarity_response = SimilarityModel().compute_similarity(text_for_similarity)
-        print(similarity_response)
-        if similarity_response > 85:
-            return "Your homework is correct"
-        else:
-            return "Your homework is incorrect"
+            raise HTTPException(detail="Error: Unsupported file format.",status_code=400)
         
-
-    def check_homework_text(task, answer):
-        request_to_ai = "This is my homework. Your task is to read the task and provide a solution. Just solve the task. The answer must be in the language in which my solution is written. The answer does not have to contain a well-executed task according to these criteria, only your answer to the task and nothing more. Here is the task: " + task
-        # TEMPORARY CHANGE OT OUR MODEL
+        detected_lang = self.detect_language(text)
+        if detected_lang not in ["en", "uk"]:
+            raise HTTPException(detail="Error: Wrong language in the file. Use only English or Ukrainian.",status_code=400)
+        
+        text = self.translate_text(text, detected_lang, "en")
+        request_to_ai = (
+            "This is my homework. Your task is to read the task and provide a solution. "
+            "Do not change or correct my answer, just solve the task. The answer must be in the original language. "
+            "Keep the structure of the file (e.g., task: answer:). Here is the task: " + text
+        )
+        
         gpt_instance = GPT()
         model_response = gpt_instance.send_something(request_to_ai)
-
-        text_for_similarity = {
+        model_response = self.translate_text(model_response, "en", detected_lang)
+        
+        similarity_score = SimilarityModel().compute_similarity({
+            "user_answer": text,
+            "right_answer": model_response
+        })
+        
+        return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
+    
+    def check_homework_text(self, task, answer):
+        task_lang = self.detect_language(task)
+        answer_lang = self.detect_language(answer)
+        
+        if task_lang not in ["en", "uk"] or answer_lang not in ["en", "uk"]:
+            raise HTTPException(detail="Error: Use only English or Ukrainian.",status_code=400)
+        
+        task = self.translate_text(task, task_lang, "en")
+        request_to_ai = (
+            "This is my homework. Your task is to read the task and provide a solution. "
+            "The answer must be in the original language. Here is the task: " + task
+        )
+        
+        gpt_instance = GPT()
+        model_response = gpt_instance.send_something(request_to_ai)
+        model_response = self.translate_text(model_response, "en", task_lang)
+        
+        similarity_score = SimilarityModel().compute_similarity({
             "user_answer": answer,
             "right_answer": model_response
-        }
-        similarity_response = SimilarityModel().compute_similarity(text_for_similarity)
-        print(similarity_response)
-        if similarity_response > 85:
-            return "Your homework is correct"
-        else:
-            return "Your homework is incorrect"
+        })
+        
+        return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
