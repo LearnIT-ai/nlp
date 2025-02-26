@@ -95,3 +95,56 @@ class AiController:
         })
         
         return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
+
+
+    def get_texts_similarity(user_answer, model_answer):
+        similarity_model = SimilarityModel()
+
+        text_data = {
+            "user_answer": user_answer,
+            "right_answer": model_answer
+        }
+
+        score = similarity_model.compute_similarity(text_data)
+        return f"Homework similiraty score is {score:.2f}%"
+    
+    
+    def get_files_similarity(user_file, model_file):
+        # parse user file
+        user_extenstion = user_file.filename.split(".")[-1].lower()
+        if user_extenstion == "pdf":
+            user_file.file.seek(0)
+            user_text = ExtractTextFromFile.pdf(user_file)
+        elif user_extenstion == "docx":
+            user_file.file.seek(0)
+            user_text = ExtractTextFromFile.docx(user_file)
+        elif user_extenstion == "doc":
+            user_file.file.seek(0)
+            user_text = ExtractTextFromFile.doc(user_file)
+        else:
+            raise Exception("Wrong format of user file")
+        
+        # parse model file
+        model_extenstion = model_file.filename.split(".")[-1].lower()
+        if model_extenstion == "pdf":
+            model_file.file.seek(0)
+            model_text = ExtractTextFromFile.pdf(model_file)
+        elif model_extenstion == "docx":
+            model_file.file.seek(0)
+            model_text = ExtractTextFromFile.docx(model_file)
+        elif model_extenstion == "doc":
+            model_file.file.seek(0)
+            model_text = ExtractTextFromFile.doc(model_file)
+        else:
+            raise Exception("Wrong format of model file")
+        
+        similarity_model = SimilarityModel()
+        
+        text_data = {
+            "user_answer": user_text,
+            "right_answer": model_text
+        }
+
+        score = similarity_model.compute_similarity(text_data)
+        return f"Homework similiraty score is {score:.2f}%"
+        

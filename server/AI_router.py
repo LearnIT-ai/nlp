@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, UploadFile, File
 from fastapi.responses import JSONResponse
-from AI_contorller import AiController
+from server.AI_controller import AiController
 
 ai_access = APIRouter(prefix="/ai_chat")
 
@@ -26,5 +26,21 @@ async def check_homework_text(request: Request):
     task,answer = body.get("task"), body.get("answer")
 
     response = AiController().check_homework_text(task,answer)
+
+    return JSONResponse(content={"response": response}, status_code=200)
+
+
+@ai_access.post("/get_texts_similarity")
+async def check_homework_text(request: Request):
+    body = await request.json()
+    user_answer,model_answer = body.get("user_answer"), body.get("model_answer")
+
+    response = AiController.get_texts_similarity(user_answer, model_answer)
+
+    return JSONResponse(content={"response": response}, status_code=200)
+
+@ai_access.post("/get_files_similarity")
+async def check_homework_text(user_file: UploadFile = File(alias="user_file"), model_file: UploadFile = File(alias="model_file")):
+    response = AiController.get_files_similarity(user_file, model_file)
 
     return JSONResponse(content={"response": response}, status_code=200)
