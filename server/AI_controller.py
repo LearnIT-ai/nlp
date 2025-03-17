@@ -1,9 +1,10 @@
 from models.gpt import GPT
-from utils.extrac_text_from_file import ExtractTextFromFile
+from utils.extrac_text_from_file import ExtractTextFromFile,FileQuestionAnswering
 from models.similarity_model import SimilarityModel
 from deep_translator import GoogleTranslator
 from langdetect import detect
 from fastapi import HTTPException
+
 
 class AiController:
     @staticmethod
@@ -71,7 +72,13 @@ class AiController:
         })
         
         return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
-    
+
+    def answer_by_file(self, file, question: str):
+        file_qa = FileQuestionAnswering()
+        answer = file_qa.answer_by_file(file, question)
+        return answer
+
+
     def check_homework_text(self, task, answer):
         task_lang = self.detect_language(task)
         answer_lang = self.detect_language(answer)

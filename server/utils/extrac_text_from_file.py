@@ -1,11 +1,15 @@
 from fastapi import  UploadFile
 from docx import Document
 import win32com.client
-
 import fitz
+from fastapi import HTTPException, UploadFile
+import fitz  # PyMuPDF
+from docx import Document
+import win32com.client
+from transformers import pipeline
+from googletrans import Translator
 
 class ExtractTextFromFile:
-
     def pdf(file: UploadFile) -> str:
         text = ""
         try:
@@ -36,3 +40,38 @@ class ExtractTextFromFile:
             return text.strip()
         except Exception as e:
             raise Exception(f"Error during extracting text from .doc: {str(e)}")
+        
+
+class FileQuestionAnswering:
+
+    def __init__(self):
+        self.qa_pipeline = pipeline("question-answering", model="distilbert-base-uncased-distilled-squad")
+        self.translator = Translator()
+
+    def translate_text(self, text: str, src_lang: str, target_lang: str) -> str:
+        text_json = {"text": text}
+        if src_lang != target_lang:
+            return self.translator.translate(text_json['text'], src=src_lang, dest=target_lang).text
+        return text
+
+    def answer_by_file(self, file, question: str):
+        ext = file.filename.split(".")[-1].lower()
+        if ext == "pdf":
+            text = ExtractTextFromFile.pdf(file)
+        elif ext == "docx":
+            text = ExtractTextFromFile.docx(file)
+        elif ext == "doc":
+            text = ExtractTextFromFile.doc(file)
+        else:
+            raise HTTPException(status_code=400, detail="Error: Unsupported file format.")
+        text_json = {"text": text}
+        detected_lang = self.translator.detect(text).lang
+        text = self.translate_text(text, detected_lang, 'en')
+
+        question_en = self.translate_text(question, detected_lang, 'en')
+
+        answer = self.qa_pipeline(question=question_en, context=text)
+        answer_uk = self.translate_text(answer['answer'], 'en', 'uk')
+
+        return answer_uk
+
