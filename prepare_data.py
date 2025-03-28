@@ -1,8 +1,10 @@
 from datasets import Dataset
 import pandas as pd
-import pdfplumber
+# import pdfplumber
+from googletrans import Translator
 import os
 import re
+from googletrans import Translator
 
 def clear_cs_data(data_path: str):
     df = pd.read_csv(data_path)
@@ -57,13 +59,17 @@ def clear_km_data(data_path: str):
 
     data = [{"text": "Критичне Мислення"}]
 
+    # go throught all files in folder
     for files in all_items:
         with pdfplumber.open(f"{data_path}/{files}") as pdf:
             for page in pdf.pages:
                 text = page.extract_text()
+                # split by word
                 text_array = re.split(r"(?<=\.)\s*", text)
                 for elem in text_array:
+                    # delete \n \t tags
                     elem = re.sub(r"[\n\t]+", " ", elem).strip()
+                    # delete singualr characters
                     elem = re.sub(r'\b[A-ZА-ЯІЇЄҐ]{2,}\b', lambda x: x.group(0).lower(), elem)
                     if len(elem) < 10:
                         data[-1]["text"] += elem
@@ -76,9 +82,38 @@ def clear_km_data(data_path: str):
 
     df = df.drop_duplicates()
 
-    df.to_json('KM_data/km_data_dot.json', orient='records', force_ascii=False, indent=4)
+    df.to_json('KM_data/km_data.json', orient='records', force_ascii=False, indent=4)
     print('Completed!')
+
+
+import pandas as pd
+def translate_json(input_file, output_file):
+    # Load the input JSON file using pandas
+    df = pd.read_json(input_file, encoding='utf-8')
+    
+    # Initialize the translator
+    translator = Translator()
+    
+    df = df[df['text'].notna() & (df['text'] != '')]
+    
+    # Translate each 'text' entry in the DataFrame
+    def safe_translate(text):
+        try:
+            return translator.translate(text, src='auto', dest='en').text
+        except Exception as e:
+            print(f"Error translating text: {text} | Error: {e}")
+            return None  # If error occurs, return None
+ 
+    df['text'] = df['text'].apply(safe_translate)
+    
+    # Remove any rows where translation failed (i.e., translated text is None)
+    df = df[df['text'].notna()]
+    
+    # Write the translated DataFrame to a new JSON file
+    df[['text']].to_json(output_file, orient='records', force_ascii=False, indent=4)
+
 
 # clear_cs_data('computer_science_synthetic_dataset.csv')
 # clear_psy_data('Psychology-10K.json')
-clear_km_data('Критичне_Мислення')
+# clear_km_data('Критичне_Мислення')
+# translate_json('KM_data/km_data.json', 'KM_data/translated_km_data.json')
