@@ -29,6 +29,15 @@ async def check_homework_text(request: Request):
 
     return JSONResponse(content={"response": response}, status_code=200)
 
+@ai_access.post("/get_homework_feedback")
+async def get_homework_feedback(request: Request):
+    body = await request.json()
+    task,answer = body.get("task"), body.get("answer")
+
+    response = AiController().get_homework_feedback(task,answer)
+
+    return JSONResponse(content={"response": response}, status_code=200)
+
 
 @ai_access.post("/get_texts_similarity")
 async def check_homework_text(request: Request):

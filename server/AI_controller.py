@@ -99,6 +99,45 @@ class AiController:
         })
         
         return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
+    
+    def get_homework_feedback(self, task, answer):
+        task_lang = self.detect_language(task)
+        answer_lang = self.detect_language(answer)
+        
+        if task_lang not in ["en", "uk"] or answer_lang not in ["en", "uk"]:
+            raise HTTPException(detail="Error: Use only English or Ukrainian.",status_code=400)
+        
+        task = self.translate_text(task, task_lang, "en")
+        request_to_ai = (
+            "This is my homework. Your task is to read the task and provide a solution. "
+            "The answer must be in the original language. Here is the task: " + task
+        )
+        
+        gpt_instance = GPT()
+        model_response = gpt_instance.send_something(request_to_ai)
+        model_response = self.translate_text(model_response, "en", task_lang)
+        
+        similarity_score = SimilarityModel().compute_similarity({
+            "user_answer": answer,
+            "right_answer": model_response
+        })
+
+        request_to_ai = (
+                "This was a task: " + task + 
+                "And this is your answer to the task: " + model_response + 
+                "And this is answer of the student: " + answer
+            )
+
+        if (similarity_score > 85):
+            request_to_ai += "And student's solution is correct, but can you give " \
+            "him some recommendations for the improvement in the original language."
+            model_response = gpt_instance.send_something(request_to_ai)
+        else:
+            request_to_ai += "And student's solution is incorrect, can you give " \
+            "him some recommendations to complete this task correctly in the original language."
+            model_response = gpt_instance.send_something(request_to_ai)
+            
+        return model_response
 
 
     def get_texts_similarity(user_answer, model_answer):
