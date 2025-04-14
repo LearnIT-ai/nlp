@@ -5,3 +5,4 @@ prep_data.clear_psy_data('Psychology-10K.json')
 prep_data.clear_km_data('Критичне_Мислення')
 # to translate the data 
 prep_data.translate_json('KM_data/km_data.json', 'KM_data/translated_km_data.json')
+prep_data.union_data_json('concat_data.json', 'CS_data/computer_science_data.json', "KM_data/translated_km_data.json", 'Psychology_data/Psychology_data.json')

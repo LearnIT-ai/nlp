@@ -4,7 +4,6 @@ import pandas as pd
 from googletrans import Translator
 import os
 import re
-from googletrans import Translator
 
 def clear_cs_data(data_path: str):
     df = pd.read_csv(data_path)
@@ -112,7 +111,13 @@ def translate_json(input_file, output_file):
     # Write the translated DataFrame to a new JSON file
     df[['text']].to_json(output_file, orient='records', force_ascii=False, indent=4)
 
+def union_data_json(final_name: str, *json_files):
+    dataframes = [pd.read_json(file) for file in json_files]
+    concatdf = pd.concat(dataframes)
+    concatdf.to_json(final_name, orient='records', force_ascii=False, indent=4) 
 
+
+# union_data_json('concat_data.json', 'CS_data/computer_science_data.json', "KM_data/translated_km_data.json", 'Psychology_data/Psychology_data.json')
 # clear_cs_data('computer_science_synthetic_dataset.csv')
 # clear_psy_data('Psychology-10K.json')
 # clear_km_data('Критичне_Мислення')
