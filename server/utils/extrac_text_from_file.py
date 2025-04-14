@@ -1,13 +1,12 @@
-from fastapi import  UploadFile
-from docx import Document
 import win32com.client
-import fitz
-from fastapi import HTTPException, UploadFile
+from fastapi import  UploadFile
 import fitz  # PyMuPDF
 from docx import Document
-import win32com.client
-from transformers import pipeline
-from googletrans import Translator
+from pptx import Presentation
+import json
+import os
+import tempfile
+
 
 class ExtractTextFromFile:
     def pdf(file: UploadFile) -> str:
@@ -41,37 +40,79 @@ class ExtractTextFromFile:
         except Exception as e:
             raise Exception(f"Error during extracting text from .doc: {str(e)}")
         
+    def pptx(file: UploadFile) -> str:
+        try:
+            file.file.seek(0)
+            prs = Presentation(file.file)
+            text = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        text.append(shape.text)
+            return "\n".join(text).strip()
+        except Exception as e:
+            raise Exception(f"Error during extracting text from .pptx: {str(e)}")
+    
+    def ppt(file: UploadFile) -> str:
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as tmp:
+                tmp.write(file.file.read())
+                tmp_path = tmp.name
 
-class FileQuestionAnswering:
+            powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+            presentation = powerpoint.Presentations.Open(tmp_path, WithWindow=False)
+            text = []
+            for slide in presentation.Slides:
+                for shape in slide.Shapes:
+                    if shape.HasTextFrame and shape.TextFrame.HasText:
+                        text.append(shape.TextFrame.TextRange.Text)
+            presentation.Close()
+            powerpoint.Quit()
+            return "\n".join(text).strip()
+        except Exception as e:
+            raise Exception(f"Error during extracting text from .ppt: {str(e)}")
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
-    def __init__(self):
-        self.qa_pipeline = pipeline("question-answering", model="distilbert-base-uncased-distilled-squad")
-        self.translator = Translator()
 
-    def translate_text(self, text: str, src_lang: str, target_lang: str) -> str:
-        text_json = {"text": text}
-        if src_lang != target_lang:
-            return self.translator.translate(text_json['text'], src=src_lang, dest=target_lang).text
-        return text
+    def py(file: UploadFile) -> str:
+        try:
+            file.file.seek(0)
+            content = file.file.read()
+            if isinstance(content, bytes):
+                content = content.decode('utf-8')
+            return content.strip()
+        except Exception as e:
+            raise Exception(f"Error during extracting text from .py: {str(e)}")
 
-    def answer_by_file(self, file, question: str):
-        ext = file.filename.split(".")[-1].lower()
+    def ipynb(file: UploadFile) -> str:
+        try:
+            file.file.seek(0)
+            data = json.load(file.file)
+            text = []
+            for cell in data.get("cells", []):
+                if "source" in cell:
+                    text.append("".join(cell["source"]))
+            return "\n".join(text).strip()
+        except Exception as e:
+            raise Exception(f"Error during extracting text from .ipynb: {str(e)}")
+
+    def multi_file(file,ext) -> str:
         if ext == "pdf":
-            text = ExtractTextFromFile.pdf(file)
+            return ExtractTextFromFile.pdf(file)
         elif ext == "docx":
-            text = ExtractTextFromFile.docx(file)
+            return ExtractTextFromFile.docx(file)
         elif ext == "doc":
-            text = ExtractTextFromFile.doc(file)
+            return ExtractTextFromFile.doc(file)
+        elif ext == "pptx":
+            return ExtractTextFromFile.pptx(file)
+        elif ext == "ppt":
+            return ExtractTextFromFile.ppt(file)
+        elif ext == "py":
+            return ExtractTextFromFile.py(file)
+        elif ext == "ipynb":
+            return ExtractTextFromFile.ipynb(file)
         else:
-            raise HTTPException(status_code=400, detail="Error: Unsupported file format.")
-        text_json = {"text": text}
-        detected_lang = self.translator.detect(text).lang
-        text = self.translate_text(text, detected_lang, 'en')
-
-        question_en = self.translate_text(question, detected_lang, 'en')
-
-        answer = self.qa_pipeline(question=question_en, context=text)
-        answer_uk = self.translate_text(answer['answer'], 'en', 'uk')
-
-        return answer_uk
-
+            raise Exception("Unsupported file extension")

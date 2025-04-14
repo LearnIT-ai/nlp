@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, UploadFile, File, HTTPException, Query
 from fastapi.responses import JSONResponse
-from server.AI_controller import AiController
+from AI_controller import AiController
 
 ai_access = APIRouter(prefix="/ai_chat")
 
