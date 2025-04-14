@@ -100,8 +100,23 @@ class AiController:
             "user_answer": answer,
             "right_answer": model_response
         })
-        
-        return "Your homework is correct" if similarity_score > 85 else "Your homework is incorrect"
+
+        request_to_ai = (
+                "This was a task: " + task + 
+                "And this is your answer to the task: " + model_response + 
+                "And this is answer of the student: " + answer
+            )
+
+        if (similarity_score > 85):
+            request_to_ai += "And student's solution is correct, but can you give " \
+            "him some recommendations for the improvement in the original language."
+            model_response = gpt_instance.send_something(request_to_ai)
+        else:
+            request_to_ai += "And student's solution is incorrect, can you give " \
+            "him some recommendations to complete this task correctly in the original language."
+            model_response = gpt_instance.send_something(request_to_ai)
+            
+        return model_response
     
     def get_homework_feedback(self, task, answer):
         task_lang = self.detect_language(task)
