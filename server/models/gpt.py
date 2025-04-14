@@ -1,11 +1,6 @@
 
 import g4f
 
-class Claude:
-    def __init__(self) -> None:
-        pass
-    
-    
 class GPT:
     def __init__(self , context:str=None, instruction:str=None,max_tokens:int=None) -> None:
         self.model = 'gpt-4'
