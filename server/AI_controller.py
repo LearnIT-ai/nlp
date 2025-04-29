@@ -1,5 +1,5 @@
 from models.gpt import GPT
-from utils.extrac_text_from_file import ExtractTextFromFile
+from utils.extract_text_from_file import ExtractTextFromFile
 from models.similarity_model import SimilarityModel
 from deep_translator import GoogleTranslator
 from langdetect import detect

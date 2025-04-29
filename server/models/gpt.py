@@ -24,4 +24,3 @@ class GPT:
         self.instruction = message 
         response = self.template_send()
         return response
-        
