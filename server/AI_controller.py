@@ -45,14 +45,7 @@ class AiController:
 
     def check_homework_file(self, homework_file):
         ext = homework_file.filename.split(".")[-1].lower()
-        if ext == "pdf":
-            text = ExtractTextFromFile.pdf(homework_file)
-        elif ext == "docx":
-            text = ExtractTextFromFile.docx(homework_file)
-        elif ext == "doc":
-            text = ExtractTextFromFile.doc(homework_file)
-        else:
-            raise HTTPException(detail="Error: Unsupported file format.",status_code=400)
+        text = ExtractTextFromFile.multi_file(homework_file, ext)
         
         detected_lang = self.detect_language(text)
         if detected_lang not in ["en", "uk"]:
@@ -170,31 +163,11 @@ class AiController:
     def get_files_similarity(user_file, model_file):
         # parse user file
         user_extenstion = user_file.filename.split(".")[-1].lower()
-        if user_extenstion == "pdf":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.pdf(user_file)
-        elif user_extenstion == "docx":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.docx(user_file)
-        elif user_extenstion == "doc":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.doc(user_file)
-        else:
-            raise Exception("Wrong format of user file")
+        user_text = ExtractTextFromFile.multi_file(user_file, user_extenstion)
         
         # parse model file
         model_extenstion = model_file.filename.split(".")[-1].lower()
-        if model_extenstion == "pdf":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.pdf(model_file)
-        elif model_extenstion == "docx":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.docx(model_file)
-        elif model_extenstion == "doc":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.doc(model_file)
-        else:
-            raise Exception("Wrong format of model file")
+        model_text = ExtractTextFromFile.multi_file(model_file, model_extenstion)
         
         similarity_model = SimilarityModel()
         
