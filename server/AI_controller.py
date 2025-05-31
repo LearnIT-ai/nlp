@@ -1,14 +1,58 @@
 from models.gpt import GPT
 from utils.extract_text_from_file import ExtractTextFromFile
+from utils.pdf_generator import PDFGeneratorHtml
 from models.similarity_model import SimilarityModel
 from deep_translator import GoogleTranslator
-from langdetect import detect
 from fastapi import HTTPException
 from langdetect import detect
-
-
-from langdetect import detect
 from googletrans import Translator
+import string
+import random
+from dotenv import load_dotenv
+import os
+
+HTML_HEADER = """
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: 'DejaVu Sans', sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      font-weight: bold;
+      text-align: center;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24pt;
+    }
+    h2 {
+      font-size: 16pt;
+      text-align: left;
+    }
+    p {
+      text-align: justify;
+      margin: 10px 0;
+    }
+    ul {
+      margin-left: 20px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    b {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+"""
+
+HTML_FOOTER = "</body></html>"
 class AiController:
     @staticmethod
     def detect_language(text):
@@ -45,14 +89,7 @@ class AiController:
 
     def check_homework_file(self, homework_file):
         ext = homework_file.filename.split(".")[-1].lower()
-        if ext == "pdf":
-            text = ExtractTextFromFile.pdf(homework_file)
-        elif ext == "docx":
-            text = ExtractTextFromFile.docx(homework_file)
-        elif ext == "doc":
-            text = ExtractTextFromFile.doc(homework_file)
-        else:
-            raise HTTPException(detail="Error: Unsupported file format.",status_code=400)
+        text = ExtractTextFromFile.multi_file(homework_file, ext)
         
         detected_lang = self.detect_language(text)
         if detected_lang not in ["en", "uk"]:
@@ -170,31 +207,11 @@ class AiController:
     def get_files_similarity(user_file, model_file):
         # parse user file
         user_extenstion = user_file.filename.split(".")[-1].lower()
-        if user_extenstion == "pdf":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.pdf(user_file)
-        elif user_extenstion == "docx":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.docx(user_file)
-        elif user_extenstion == "doc":
-            user_file.file.seek(0)
-            user_text = ExtractTextFromFile.doc(user_file)
-        else:
-            raise Exception("Wrong format of user file")
+        user_text = ExtractTextFromFile.multi_file(user_file, user_extenstion)
         
         # parse model file
         model_extenstion = model_file.filename.split(".")[-1].lower()
-        if model_extenstion == "pdf":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.pdf(model_file)
-        elif model_extenstion == "docx":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.docx(model_file)
-        elif model_extenstion == "doc":
-            model_file.file.seek(0)
-            model_text = ExtractTextFromFile.doc(model_file)
-        else:
-            raise Exception("Wrong format of model file")
+        model_text = ExtractTextFromFile.multi_file(model_file, model_extenstion)
         
         similarity_model = SimilarityModel()
         
@@ -304,3 +321,16 @@ class AiController:
         final_answer_uk = translator.translate(final_answer_en, src='en', dest='uk').text
 
         return final_answer_uk
+
+    def generate_simple_silabus(subject):
+        load_dotenv()
+        port = os.getenv("GATEWAY_PORT")
+        host = os.getenv("GATEWAY_HOST")
+        gpt_instance = GPT()
+        gpt_response = gpt_instance.generate_syllabus_by_subject(subject)
+
+        suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        filename = f"{subject.replace(' ', '_').lower()}_{suffix}.pdf"
+        html_result = HTML_HEADER + gpt_response + HTML_FOOTER
+        PDFGeneratorHtml().save_html_as_pdf(html_result, filename)
+        return f"http://{host}:{port}/default/get_silabus?filename={filename}"
