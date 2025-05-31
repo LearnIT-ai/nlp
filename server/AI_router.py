@@ -66,3 +66,12 @@ async def answer_by_file(file: UploadFile = File(alias="file"),question: str = Q
     response = AiController().answer_by_file(file,question)
 
     return JSONResponse(content={"response": response}, status_code=200)
+
+@ai_access.post("/generate_simple_silabus")
+async def generate_simple_silabus(request: Request):
+    body = await request.json()
+    subject = body.get("subject")
+
+    pdf_file = AiController.generate_simple_silabus(subject)
+
+    return JSONResponse(content={"pdf_file": pdf_file}, status_code=200)
