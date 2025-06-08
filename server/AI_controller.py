@@ -321,6 +321,21 @@ class AiController:
         final_answer_uk = translator.translate(final_answer_en, src='en', dest='uk').text
 
         return final_answer_uk
+    
+    
+    def generate_survey_syllabus(body):
+        load_dotenv()
+        port = os.getenv("GATEWAY_PORT")
+        host = os.getenv("GATEWAY_HOST")
+        gpt_instance = GPT()
+        gpt_response = gpt_instance.generate_syllabus_by_answers(body)
+
+        suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        filename = f"{body.get("subject").replace(' ', '_').lower()}_{suffix}.pdf"
+        html_result = HTML_HEADER + gpt_response + HTML_FOOTER
+        PDFGeneratorHtml().save_html_as_pdf(html_result, filename)
+        return f"http://{host}:{port}/default/get_silabus?filename={filename}"
+
 
     def generate_simple_silabus(subject):
         load_dotenv()

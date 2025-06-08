@@ -75,3 +75,12 @@ async def generate_simple_silabus(request: Request):
     pdf_file = AiController.generate_simple_silabus(subject)
 
     return JSONResponse(content={"pdf_file": pdf_file}, status_code=200)
+
+
+@ai_access.post("/generate_survey_silabus")
+async def generate_survey_silabus(request: Request):
+    body = await request.json()
+
+    pdf_file = AiController.generate_survey_syllabus(body)
+
+    return JSONResponse(content={"pdf_file": pdf_file}, status_code=200)
