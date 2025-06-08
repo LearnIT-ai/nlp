@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-import pymupdf as fitz  # PyMuPDF
+import pymupdf as fitz  
 import json
 import os
 import shutil
@@ -13,13 +13,13 @@ from dotenv import load_dotenv
 
 app = FastAPI()
 
-# Директорія для збереження тимчасових файлів
+
 STORAGE_FOLDER = "./storage"
 os.makedirs(STORAGE_FOLDER, exist_ok=True)
 
-MAX_LENGTH = 1000  # Довжина одного текстового фрагмента
+MAX_LENGTH = 1000  
 
-# === MongoDB CODE START ===
+
 load_dotenv()
 uri = os.getenv("uri")
 
@@ -33,9 +33,9 @@ except Exception as e:
 
 db = client['PDF']
 collection = db['test']
-# === MongoDB CODE END ===
 
-# === Функція витягнення тексту з PDF ===
+
+# === Text extraction function from PDF ===
 def extract_text_from_pdf(pdf_bytes):
     text = ""
     pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -43,22 +43,22 @@ def extract_text_from_pdf(pdf_bytes):
         text += page.get_text("text")
     return text
 
-# === Функція очищення тексту ===
+# === Text cleaning function ===
 def clean_text(text):
     lines = text.split('\n')
     cleaned_lines = [line.strip() for line in lines if line.strip() and len(line.split()) > 1]
     return "\n".join(cleaned_lines)
 
-# === Функція конвертації тексту в JSON ===
+# === Text to JSON conversion function ===
 def convert_text_to_json(text):
     sentences = text.split('. ')
     return [{"text": sentence.strip()} for sentence in sentences if sentence]
 
-# === Функція перекладу JSON ===
+# === JSON translation function ===
 def translate_json(data):
     return [{"text": GoogleTranslator(source="uk", target="en").translate(item["text"])} for item in data]
 
-# === Функція розбиття тексту на рівні частини ===
+# === Text splitting function ===
 def size_row(data, max_length=MAX_LENGTH):
     def split_text_into_chunks(text, max_length):
         words = text.split()
@@ -81,7 +81,7 @@ def size_row(data, max_length=MAX_LENGTH):
     formatted_chunks = split_text_into_chunks(full_text, max_length)
     return [{"text": chunk} for chunk in formatted_chunks]
 
-# === Функція обробки PDF-файлу ===
+# === PDF processing function ===
 def process_pdf(pdf_path):
     with open(pdf_path, "rb") as file:
         pdf_bytes = file.read()
@@ -153,7 +153,6 @@ async def upload_files(files: List[UploadFile] = File(alias="Json_format")):
         "files_processed": list(all_results.keys())
     }
 
-# === API для отримання конкретного обробленого JSON-файла ===
 @app.get("/data/file/{filename}")
 async def get_processed_data(filename: str):
     document = collection.find_one({"filename": filename})
@@ -165,10 +164,9 @@ async def get_processed_data(filename: str):
         "data": document["content"]
     }
 
-# === API для отримання всіх оброблених JSON-файлів ===
 @app.get("/data/all_files")
 async def get_all_data():
-    documents = collection.find()  # Збираємо всі документи з колекції
+    documents = collection.find()  
     all_data = []
 
     for doc in documents:
